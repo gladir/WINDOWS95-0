@@ -28,6 +28,15 @@ Var
  RunCommand:String;
  CursorPos:Integer;
 
+{ Variables pour la boîte de dialogue Date/Heure }
+Var
+ DateTimeDialogVisible: Boolean;
+ CurrentTab: Integer; { 1=Date et heure, 2=Fuseau horaire }
+ SelectedHour, SelectedMin, SelectedSec: Word;
+ SelectedYear, SelectedMonth, SelectedDay: Word;
+ TimeZone: String;
+ CurrentSec100, DayOfWeek: Word;
+
 {$IFNDEF FPC}
  Function SetAPMMode(Mode:Word):Boolean;Assembler;ASM
    { Connecter l'interface RM }
@@ -444,8 +453,9 @@ End;
 { Vérifie si la souris est sur le bouton Annuler }
 Function IsMouseOnCancelButton(x,y:Integer):Boolean;
 Var
- CenterX, CenterY: Integer;
- DialogX2, DialogY2: Integer;
+ CenterX:Integer;
+ CenterY:Integer;
+ DialogX2,DialogY2:Integer;
 Begin
  CenterX := GetMaxX div 2;
  CenterY := GetMaxY div 2;
@@ -520,7 +530,7 @@ Begin
 
  { Boutons de la boîte de dialogue }
  SetFillStyle(SolidFill, LightGray);
- 
+
  { Bouton Parcourir à gauche - plus large }
  Bar(DialogX1 + 15, DialogY2 - 35, DialogX1 + 95, DialogY2 - 15);
  Draw3DBorder(DialogX1 + 15, DialogY2 - 35, DialogX1 + 95, DialogY2 - 15, True);
@@ -577,9 +587,415 @@ Begin
  CenterY := GetMaxY div 2;
  DialogX1 := CenterX - 200;
  DialogY2 := CenterY + 70;
- 
+
  IsMouseOnRunBrowseButton := (x >= DialogX1 + 15) and (x <= DialogX1 + 95) and
                             (y >= DialogY2 - 35) and (y <= DialogY2 - 15);
+End;
+
+{ Vérifie si la souris est sur l'onglet Date et heure }
+Function IsMouseOnDateTab(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX1, DialogY1: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX1 := CenterX - 200;
+ DialogY1 := CenterY - 150;
+ 
+ IsMouseOnDateTab := (x >= DialogX1 + 5) and (x <= DialogX1 + 100) and
+                     (y >= DialogY1 + 25) and (y <= DialogY1 + 45);
+End;
+
+{ Vérifie si la souris est sur l'onglet Fuseau horaire }
+Function IsMouseOnTimezoneTab(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX1, DialogY1: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX1 := CenterX - 200;
+ DialogY1 := CenterY - 150;
+ 
+ IsMouseOnTimezoneTab := (x >= DialogX1 + 100) and (x <= DialogX1 + 200) and
+                        (y >= DialogY1 + 25) and (y <= DialogY1 + 45);
+End;
+
+{ Vérifie si la souris est sur le bouton X de fermeture }
+Function IsMouseOnDateTimeCloseButton(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX2, DialogY1: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX2 := CenterX + 200;
+ DialogY1 := CenterY - 150;
+ 
+ IsMouseOnDateTimeCloseButton := (x >= DialogX2 - 22) and (x <= DialogX2 - 4) and
+                                (y >= DialogY1 + 4) and (y <= DialogY1 + 18);
+End;
+
+{ Vérifie si la souris est sur le bouton OK de la boîte Date/Heure }
+Function IsMouseOnDateTimeOKButton(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX2, DialogY2: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX2 := CenterX + 200;
+ DialogY2 := CenterY + 150;
+ 
+ IsMouseOnDateTimeOKButton := (x >= DialogX2 - 180) and (x <= DialogX2 - 130) and
+                             (y >= DialogY2 - 35) and (y <= DialogY2 - 15);
+End;
+
+{ Vérifie si la souris est sur le bouton Annuler de la boîte Date/Heure }
+Function IsMouseOnDateTimeCancelButton(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX2, DialogY2: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX2 := CenterX + 200;
+ DialogY2 := CenterY + 150;
+ 
+ IsMouseOnDateTimeCancelButton := (x >= DialogX2 - 120) and (x <= DialogX2 - 70) and
+                                 (y >= DialogY2 - 35) and (y <= DialogY2 - 15);
+End;
+
+{ Vérifie si la souris est sur le bouton Appliquer de la boîte Date/Heure }
+Function IsMouseOnDateTimeApplyButton(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX2, DialogY2: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX2 := CenterX + 200;
+ DialogY2 := CenterY + 150;
+ 
+ IsMouseOnDateTimeApplyButton := (x >= DialogX2 - 60) and (x <= DialogX2 - 10) and
+                                (y >= DialogY2 - 35) and (y <= DialogY2 - 15);
+End;
+
+{ Vérifie si la souris est sur l'horloge de la barre de tâches }
+Function IsMouseOnClock(x, y: Integer): Boolean;
+Var
+ MaxX, MaxY, ClockWidth: Integer;
+Begin
+ MaxX := GetMaxX;
+ MaxY := GetMaxY;
+ ClockWidth := 95;
+ 
+ IsMouseOnClock := (x >= MaxX - ClockWidth) and (x <= MaxX - 2) and
+                   (y >= MaxY - 28) and (y <= MaxY - 2);
+End;
+
+{ Dessine l'horloge analogique }
+Procedure DrawAnalogClock(CenterX, CenterY, Radius: Integer; H, M, S: Integer);
+Var
+ HourAngle, MinuteAngle, SecondAngle: Real;
+ HourX, HourY, MinuteX, MinuteY, SecondX, SecondY: Integer;
+Begin
+ { Cercle de l'horloge }
+ SetColor(Black);
+ Circle(CenterX, CenterY, Radius);
+ SetFillStyle(SolidFill, White);
+ FloodFill(CenterX, CenterY, Black);
+ 
+ { Marques des heures }
+ SetColor(Black);
+ OutTextXY(CenterX - 3, CenterY - Radius + 5, '12');
+ OutTextXY(CenterX + Radius - 8, CenterY - 5, '3');
+ OutTextXY(CenterX - 3, CenterY + Radius - 15, '6');
+ OutTextXY(CenterX - Radius + 5, CenterY - 5, '9');
+ 
+ { Calcul des angles (en radians) }
+ HourAngle := (H mod 12 + M / 60.0) * Pi / 6.0 - Pi / 2.0;
+ MinuteAngle := M * Pi / 30.0 - Pi / 2.0;
+ SecondAngle := S * Pi / 30.0 - Pi / 2.0;
+ 
+ { Aiguille des heures }
+ HourX := CenterX + Round(Cos(HourAngle) * (Radius - 20));
+ HourY := CenterY + Round(Sin(HourAngle) * (Radius - 20));
+ SetColor(Black);
+ Line(CenterX, CenterY, HourX, HourY);
+ Line(CenterX + 1, CenterY, HourX + 1, HourY);
+ 
+ { Aiguille des minutes }
+ MinuteX := CenterX + Round(Cos(MinuteAngle) * (Radius - 10));
+ MinuteY := CenterY + Round(Sin(MinuteAngle) * (Radius - 10));
+ Line(CenterX, CenterY, MinuteX, MinuteY);
+ 
+ { Aiguille des secondes }
+ SecondX := CenterX + Round(Cos(SecondAngle) * (Radius - 5));
+ SecondY := CenterY + Round(Sin(SecondAngle) * (Radius - 5));
+ SetColor(Red);
+ Line(CenterX, CenterY, SecondX, SecondY);
+ 
+ { Centre de l'horloge }
+ SetColor(Black);
+ SetFillStyle(SolidFill, Black);
+ FillEllipse(CenterX, CenterY, 3, 3);
+End;
+
+{ Dessine le calendrier }
+Procedure DrawCalendar(x, y: Integer; Year, Month, Day: Integer);
+Var
+ i, j, FirstDay, DaysInMonth, CurrentDay: Integer;
+ MonthNames: Array[1..12] of String;
+Begin
+ MonthNames[1] := 'Janvier'; MonthNames[2] := 'Fevrier'; MonthNames[3] := 'Mars';
+ MonthNames[4] := 'Avril'; MonthNames[5] := 'Mai'; MonthNames[6] := 'Juin';
+ MonthNames[7] := 'Juillet'; MonthNames[8] := 'Aout'; MonthNames[9] := 'Septembre';
+ MonthNames[10] := 'Octobre'; MonthNames[11] := 'Novembre'; MonthNames[12] := 'Decembre';
+ 
+ { Fond du calendrier }
+ SetFillStyle(SolidFill, White);
+ Bar(x, y, x + 200, y + 150);
+ Draw3DBorder(x, y, x + 200, y + 150, False);
+ 
+ { En-tête du mois }
+ SetColor(Black);
+ SetTextStyle(DefaultFont, HorizDir, 1);
+ OutTextXY(x + 10, y + 10, MonthNames[Month] + ' ' + IntToStr(Year));
+ 
+ { Jours de la semaine }
+ OutTextXY(x + 10, y + 30, 'D  L  M  M  J  V  S');
+ 
+ { Calcul du premier jour du mois (simulation simple) }
+ FirstDay := ((Year - 1900) * 365 + Month * 30 + Day) mod 7;
+ 
+ { Calcul du nombre de jours dans le mois }
+ Case Month of
+  2: If Year mod 4 = 0 Then DaysInMonth := 29 Else DaysInMonth := 28;
+  4, 6, 9, 11: DaysInMonth := 30;
+  Else DaysInMonth := 31;
+ End;
+ 
+ { Affichage des jours }
+ CurrentDay := 1;
+ For i := 0 to 5 do
+  For j := 0 to 6 do
+  Begin
+   If (i = 0) and (j < FirstDay) Then
+    { Jours vides au début }
+   Else If CurrentDay <= DaysInMonth Then
+   Begin
+    If CurrentDay = Day Then
+    Begin
+     { Jour sélectionné }
+     SetFillStyle(SolidFill, Blue);
+     Bar(x + 10 + j * 25, y + 50 + i * 15, x + 30 + j * 25, y + 65 + i * 15);
+     SetColor(White);
+    End
+    Else
+     SetColor(Black);
+    
+    OutTextXY(x + 15 + j * 25, y + 52 + i * 15, IntToStr(CurrentDay));
+    Inc(CurrentDay);
+   End;
+  End;
+End;
+
+{ Dessine un spinner pour les heures/minutes/secondes }
+Procedure DrawTimeSpinner(x, y: Integer; Value: Integer; MaxValue: Integer; Selected: Boolean);
+Begin
+ { Fond }
+ SetFillStyle(SolidFill, White);
+ Bar(x, y, x + 40, y + 20);
+ 
+ If Selected Then
+ Begin
+  SetColor(Blue);
+  SetFillStyle(SolidFill, Blue);
+  Bar(x + 1, y + 1, x + 39, y + 19);
+  SetColor(White);
+ End
+ Else
+ Begin
+  SetColor(Black);
+  Draw3DBorder(x, y, x + 40, y + 20, False);
+ End;
+ 
+ { Valeur }
+ If Value < 10 Then
+  OutTextXY(x + 8, y + 6, '0' + IntToStr(Value))
+ Else
+  OutTextXY(x + 8, y + 6, IntToStr(Value));
+ 
+ { Boutons + et - }
+ SetColor(Black);
+ SetFillStyle(SolidFill, LightGray);
+ Bar(x + 42, y, x + 52, y + 9);
+ Bar(x + 42, y + 11, x + 52, y + 20);
+ Draw3DBorder(x + 42, y, x + 52, y + 9, True);
+ Draw3DBorder(x + 42, y + 11, x + 52, y + 20, True);
+ 
+ { Symboles + et - }
+ SetColor(Black);
+ Line(x + 45, y + 4, x + 49, y + 4);
+ Line(x + 47, y + 2, x + 47, y + 6);
+ Line(x + 45, y + 15, x + 49, y + 15);
+End;
+
+{ Dessine les onglets de la boîte Date/Heure }
+Procedure DrawDateTimeTabs(x, y: Integer; CurrentTab: Integer);
+Begin
+ { Onglet Date et heure }
+ If CurrentTab = 1 Then
+ Begin
+  SetFillStyle(SolidFill, LightGray);
+  Bar(x + 5, y + 25, x + 100, y + 45);
+  SetColor(Black);
+  OutTextXY(x + 15, y + 32, 'Date et heure');
+  Draw3DBorder(x + 5, y + 25, x + 100, y + 45, True);
+ End
+ Else
+ Begin
+  SetFillStyle(SolidFill, DarkGray);
+  Bar(x + 5, y + 27, x + 100, y + 45);
+  SetColor(Black);
+  OutTextXY(x + 15, y + 34, 'Date et heure');
+  Draw3DBorder(x + 5, y + 27, x + 100, y + 45, False);
+ End;
+ 
+ { Onglet Fuseau horaire }
+ If CurrentTab = 2 Then
+ Begin
+  SetFillStyle(SolidFill, LightGray);
+  Bar(x + 100, y + 25, x + 200, y + 45);
+  SetColor(Black);
+  OutTextXY(x + 110, y + 32, 'Fuseau horaire');
+  Draw3DBorder(x + 100, y + 25, x + 200, y + 45, True);
+ End
+ Else
+ Begin
+  SetFillStyle(SolidFill, DarkGray);
+  Bar(x + 100, y + 27, x + 200, y + 45);
+  SetColor(Black);
+  OutTextXY(x + 110, y + 34, 'Fuseau horaire');
+  Draw3DBorder(x + 100, y + 27, x + 200, y + 45, False);
+ End;
+End;
+
+{ Procédure principale pour dessiner la boîte de dialogue Date/Heure }
+Procedure DrawDateTimeDialog;
+Var
+ CenterX, CenterY: Integer;
+ DialogX1, DialogY1, DialogX2, DialogY2: Integer;
+ H, M, S: Word;
+ Year, Month, Day, DayOfWeek: Word;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ 
+ { Dimensions de la boîte de dialogue }
+ DialogX1 := CenterX - 200;
+ DialogY1 := CenterY - 150;
+ DialogX2 := CenterX + 200;
+ DialogY2 := CenterY + 150;
+ 
+ { Fond de la boîte de dialogue }
+ SetFillStyle(SolidFill, LightGray);
+ Bar(DialogX1, DialogY1, DialogX2, DialogY2);
+ 
+ { Bordure 3D }
+ Draw3DBorder(DialogX1, DialogY1, DialogX2, DialogY2, True);
+ 
+ { Barre de titre }
+ SetFillStyle(SolidFill, Blue);
+ Bar(DialogX1 + 2, DialogY1 + 2, DialogX2 - 2, DialogY1 + 22);
+ SetColor(White);
+ SetTextStyle(DefaultFont, HorizDir, 1);
+ OutTextXY(DialogX1 + 8, DialogY1 + 8, 'Proprietes Date/Heure');
+ 
+ { Bouton X de fermeture }
+ SetFillStyle(SolidFill, LightGray);
+ Bar(DialogX2 - 22, DialogY1 + 4, DialogX2 - 4, DialogY1 + 18);
+ Draw3DBorder(DialogX2 - 22, DialogY1 + 4, DialogX2 - 4, DialogY1 + 18, True);
+ SetColor(Black);
+ OutTextXY(DialogX2 - 17, DialogY1 + 8, 'X');
+ 
+ { Bouton ? d'aide }
+ SetFillStyle(SolidFill, LightGray);
+ Bar(DialogX2 - 42, DialogY1 + 4, DialogX2 - 24, DialogY1 + 18);
+ Draw3DBorder(DialogX2 - 42, DialogY1 + 4, DialogX2 - 24, DialogY1 + 18, True);
+ SetColor(Black);
+ OutTextXY(DialogX2 - 37, DialogY1 + 8, '?');
+ 
+ { Dessiner les onglets }
+ DrawDateTimeTabs(DialogX1, DialogY1, CurrentTab);
+ 
+ { Contenu selon l'onglet sélectionné }
+ GetTime(H, M, S, DayOfWeek);
+ GetDate(Year, Month, Day, DayOfWeek);
+ 
+ If CurrentTab = 1 Then
+ Begin
+  { Onglet Date et heure }
+  
+  { Calendrier }
+  DrawCalendar(DialogX1 + 15, DialogY1 + 60, Year, Month, Day);
+  
+  { Horloge analogique }
+  DrawAnalogClock(DialogX1 + 280, DialogY1 + 120, 45, H, M, S);
+  
+  { Réglages de l'heure }
+  SetColor(Black);
+  OutTextXY(DialogX1 + 230, DialogY1 + 190, 'Heure:');
+  DrawTimeSpinner(DialogX1 + 230, DialogY1 + 205, H, 23, False);
+  
+  OutTextXY(DialogX1 + 285, DialogY1 + 190, 'Min:');
+  DrawTimeSpinner(DialogX1 + 285, DialogY1 + 205, M, 59, False);
+  
+  OutTextXY(DialogX1 + 335, DialogY1 + 190, 'Sec:');
+  DrawTimeSpinner(DialogX1 + 335, DialogY1 + 205, S, 59, False);
+ End
+ Else
+ Begin
+  { Onglet Fuseau horaire }
+  SetColor(Black);
+  OutTextXY(DialogX1 + 15, DialogY1 + 60, 'Fuseau horaire :');
+  
+  { Zone de liste déroulante simulée }
+  SetFillStyle(SolidFill, White);
+  Bar(DialogX1 + 15, DialogY1 + 80, DialogX1 + 350, DialogY1 + 100);
+  Draw3DBorder(DialogX1 + 15, DialogY1 + 80, DialogX1 + 350, DialogY1 + 100, False);
+  SetColor(Black);
+  OutTextXY(DialogX1 + 20, DialogY1 + 85, '(GMT+01:00) Paris, Madrid, Rome');
+  
+  { Carte du monde simulée }
+  SetFillStyle(SolidFill, Blue);
+  Bar(DialogX1 + 15, DialogY1 + 120, DialogX1 + 350, DialogY1 + 200);
+  SetColor(Yellow);
+  OutTextXY(DialogX1 + 170, DialogY1 + 155, 'EUROPE');
+ End;
+ 
+ { Boutons }
+ SetFillStyle(SolidFill, LightGray);
+ 
+ { Bouton OK }
+ Bar(DialogX2 - 180, DialogY2 - 35, DialogX2 - 130, DialogY2 - 15);
+ Draw3DBorder(DialogX2 - 180, DialogY2 - 35, DialogX2 - 130, DialogY2 - 15, True);
+ SetColor(Black);
+ OutTextXY(DialogX2 - 165, DialogY2 - 28, 'OK');
+ 
+ { Bouton Annuler }
+ Bar(DialogX2 - 120, DialogY2 - 35, DialogX2 - 70, DialogY2 - 15);
+ Draw3DBorder(DialogX2 - 120, DialogY2 - 35, DialogX2 - 70, DialogY2 - 15, True);
+ SetColor(Black);
+ OutTextXY(DialogX2 - 105, DialogY2 - 28, 'Annuler');
+ 
+ { Bouton Appliquer }
+ Bar(DialogX2 - 60, DialogY2 - 35, DialogX2 - 10, DialogY2 - 15);
+ Draw3DBorder(DialogX2 - 60, DialogY2 - 35, DialogX2 - 10, DialogY2 - 15, True);
+ SetColor(Black);
+ OutTextXY(DialogX2 - 50, DialogY2 - 28, 'Appliquer');
 End;
 
 { Exécute la commande saisie }
@@ -717,7 +1133,43 @@ Begin
  End;
 
  If(MousePressed)Then Begin
-  If RunDialogVisible Then Begin
+  If DateTimeDialogVisible Then Begin
+   { Gestion des clics dans la boîte de dialogue Date/Heure }
+   If IsMouseOnDateTab(MouseX, MouseY) Then Begin
+    CurrentTab := 1;
+    DrawDateTimeDialog;
+   End
+   Else If IsMouseOnTimezoneTab(MouseX, MouseY) Then Begin
+    CurrentTab := 2;
+    DrawDateTimeDialog;
+   End
+   Else If IsMouseOnDateTimeCloseButton(MouseX, MouseY) Then Begin
+    DateTimeDialogVisible := False;
+    DrawDesktop;
+    If MenuVisible Then DrawStartMenu;
+   End
+   Else If IsMouseOnDateTimeOKButton(MouseX, MouseY) Then Begin
+    { Appliquer les changements et fermer }
+    DateTimeDialogVisible := False;
+    DrawDesktop;
+    If MenuVisible Then DrawStartMenu;
+   End
+   Else If IsMouseOnDateTimeCancelButton(MouseX, MouseY) Then Begin
+    DateTimeDialogVisible := False;
+    DrawDesktop;
+    If MenuVisible Then DrawStartMenu;
+   End
+   Else If IsMouseOnDateTimeApplyButton(MouseX, MouseY) Then Begin
+    { Appliquer les changements sans fermer }
+    { TODO: Implémenter l'application des changements }
+   End;
+
+   { Attendre que le bouton soit relâché }
+   Repeat
+    GetMouseState(MouseX, MouseY, MouseButton);
+   Until (MouseButton and 1) = 0;
+  End
+  Else If RunDialogVisible Then Begin
    { Gestion des clics dans la boîte de dialogue Exécuter }
    If IsMouseOnRunOKButton(MouseX, MouseY) Then Begin
     ExecuteRunCommand;
@@ -801,6 +1253,26 @@ Begin
    Repeat
     GetMouseState(MouseX,MouseY,MouseButton);
    Until(MouseButton and 1)=0;
+  End
+  Else If IsMouseOnClock(MouseX, MouseY) Then Begin
+   { Ouvrir la boîte de dialogue Date/Heure }
+   DateTimeDialogVisible := True;
+   CurrentTab := 1; { Commencer sur l'onglet Date et heure }
+   MenuVisible := False;
+   HighlightedMenuItem := 0;
+
+   { Initialiser avec l'heure actuelle }
+   GetTime(SelectedHour, SelectedMin, SelectedSec, CurrentSec100);
+   GetDate(SelectedYear, SelectedMonth, SelectedDay, DayOfWeek);
+   TimeZone := '(GMT-05:00) Heure de l''Est (Canada et États-Unis)';
+
+   DrawDesktop;
+   DrawDateTimeDialog;
+
+   { Attendre que le bouton soit relâché }
+   Repeat
+    GetMouseState(MouseX, MouseY, MouseButton);
+   Until (MouseButton and 1) = 0;
   End;
  End;
 End;
@@ -824,6 +1296,8 @@ Begin
  SelectedShutdownOption:=1;
  HighlightedMenuItem:=0;
  RunCommand:='';
+ DateTimeDialogVisible:=False;
+ CurrentTab:=1;
   { Initialiser la dernière minute pour la mise à jour de l'horloge }
  GetTime(CurrentHour, CurrentMin, CurrentSec, CurrentSec100);
  LastMinute := CurrentMin;
