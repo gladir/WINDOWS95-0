@@ -94,6 +94,60 @@ Function GetTickCount: LongInt;Begin
  {$ENDIF}
 End;
 
+{ Convertit un entier en chaîne }
+Function IntToStr(Value:Integer):String;
+Var
+ S:String;
+Begin
+ Str(Value,S);
+ IntToStr:=S;
+End;
+
+{ Obtient l'heure actuelle au format Windows 95 }
+Function GetCurrentTime:String;
+Var
+ Hour,Min,Sec,Sec100:Word;
+ TimeStr:String;
+ MinStr:String;
+Begin
+ {$IFDEF FPC}
+  GetTime(Hour,Min,Sec,Sec100);
+ {$ELSE}
+  GetTime(Hour,Min,Sec,Sec100);
+ {$ENDIF}
+  { Formatage des minutes avec zéro initial }
+ If Min<10 Then MinStr:='0'+IntToStr(Min)
+           Else MinStr:=IntToStr(Min);
+ { Format 12 heures avec AM/PM comme Windows 95 }
+ If Hour=0 Then TimeStr:='12:'+MinStr+' AM' Else
+ If Hour<12 Then TimeStr:=IntToStr(Hour)+':'+MinStr+' AM' Else
+ If Hour=12 Then TimeStr:='12:'+MinStr+' PM'
+            Else TimeStr:=IntToStr(Hour-12)+':'+MinStr+' PM';
+ GetCurrentTime := TimeStr;
+End;
+
+{ Obtient la date actuelle au format Windows 95 }
+Function GetCurrentDate:String;
+Var
+ Year,Month,Day,DayOfWeek:Word;
+ DateStr:String;
+ MonthStr,DayStr:String;
+Begin
+ {$IFDEF FPC}
+  GetDate(Year, Month, Day, DayOfWeek);
+ {$ELSE}
+  GetDate(Year, Month, Day, DayOfWeek);
+ {$ENDIF}
+ { Formatage avec zéros initiaux }
+ If Month<10 Then MonthStr:='0'+IntToStr(Month)
+             Else MonthStr:=IntToStr(Month);
+ If Day<10 Then DayStr:='0'+IntToStr(Day)
+           Else DayStr:=IntToStr(Day);
+  { Format MM/DD/YYYY comme Windows 95 américain }
+ DateStr:=MonthStr + '/'+DayStr + '/'+IntToStr(Year);
+ GetCurrentDate:=DateStr;
+End;
+
 Procedure InitScr;
 Var
  GraphDriver,GraphMode:Integer;
@@ -138,6 +192,8 @@ End;
 Procedure DrawTaskbar;
 Var
  MaxX,MaxY:Integer;
+ TimeStr, DateStr: String;
+ ClockWidth: Integer;
 Begin
  MaxX:=GetMaxX;
  MaxY:=GetMaxY;
@@ -155,6 +211,24 @@ Begin
  SetColor(Black);
  SetTextStyle(DefaultFont, HorizDir, 1);
  OutTextXY(8, MaxY - 20, 'Demarrer');
+
+ { Horloge à droite de la barre de tâches }
+ TimeStr := GetCurrentTime;
+ DateStr := GetCurrentDate;
+ ClockWidth := 95; { Largeur pour afficher MM/DD/YYYY complètement }
+
+ { Zone de l'horloge avec bordure enfoncée }
+ SetFillStyle(SolidFill, LightGray);
+ Bar(MaxX - ClockWidth, MaxY - 28, MaxX - 2, MaxY - 2);
+ Draw3DBorder(MaxX - ClockWidth, MaxY - 28, MaxX - 2, MaxY - 2, False);
+
+ { Affichage de l'heure }
+ SetColor(Black);
+ SetTextStyle(DefaultFont, HorizDir, 1);
+ OutTextXY(MaxX - ClockWidth + 5, MaxY - 23, TimeStr);
+
+ { Affichage de la date (plus petite) }
+ OutTextXY(MaxX - ClockWidth + 5, MaxY - 12, DateStr);
 End;
 
 { Dessine le menu Démarrer }
@@ -548,21 +622,18 @@ Procedure HandleRunDialogKeyboard(Key:Char);Begin
 End;
 
 { Détermine quel élément du menu est survolé par la souris }
-Function GetHoveredMenuItem(x, y: Integer): Integer;
+Function GetHoveredMenuItem(x,y:Integer):Integer;
 Var
- MaxY: Integer;
- i: Integer;
+ MaxY:Integer;
+ i:Integer;
 Begin
- MaxY := GetMaxY;
- GetHoveredMenuItem := 0; { Par défaut, aucun élément }
-
- For i := 1 to 8 do
- Begin
-  If (i <> 7) and { Ignorer la ligne de séparation }
-     (x >= 28) and (x <= 177) and
-     (y >= MaxY - 210 + (i-1) * 20) and
-     (y <= MaxY - 192 + (i-1) * 20) then
-  Begin
+ MaxY:=GetMaxY;
+ GetHoveredMenuItem:=0; { Par défaut, aucun élément }
+ For i:=1 to 8 do Begin
+  If(i <> 7)and { Ignorer la ligne de séparation }
+    (x >= 28) and (x <= 177)and
+    (y >= MaxY - 210 + (i-1) * 20) and
+    (y <= MaxY - 192 + (i-1) * 20)Then Begin
    GetHoveredMenuItem := i;
    Break;
   End;
@@ -685,10 +756,33 @@ Begin
  End;
 End;
 
+{ Vérifie si la souris est sur l'horloge }
+Function IsMouseOnClock(x, y: Integer): Boolean;
+Var
+ MaxX, MaxY: Integer;
+ ClockWidth: Integer;
+Begin
+ MaxX := GetMaxX;
+ MaxY := GetMaxY;
+ ClockWidth := 95;
+
+ IsMouseOnClock := (x >= MaxX - ClockWidth) and (x <= MaxX - 2) and
+                   (y >= MaxY - 28) and (y <= MaxY - 2);
+End;
+
+{ Met à jour l'affichage de l'horloge }
+Procedure UpdateClock;
+Begin
+ { Redessiner seulement la zone de l'horloge }
+ DrawTaskbar;
+End;
+
 { Boucle principale }
 Procedure MainLoop;
 Var
  Key:Char;
+ LastMinute: Word;
+ CurrentHour, CurrentMin, CurrentSec, CurrentSec100: Word;
 Begin
  MenuVisible:=False;
  ShutdownDialogVisible:=False;
@@ -696,20 +790,27 @@ Begin
  SelectedShutdownOption:=1;
  HighlightedMenuItem:=0;
  RunCommand:='';
+  { Initialiser la dernière minute pour la mise à jour de l'horloge }
+ GetTime(CurrentHour, CurrentMin, CurrentSec, CurrentSec100);
+ LastMinute := CurrentMin;
  DrawDesktop;
-
  Repeat
   HandleMouse;
-  If(KeyPressed)then
+   { Mise à jour de l'horloge chaque minute }
+  GetTime(CurrentHour, CurrentMin, CurrentSec, CurrentSec100);
+  If CurrentMin <> LastMinute Then
   Begin
+   LastMinute := CurrentMin;
+   If not ShutdownDialogVisible and not RunDialogVisible Then
+    UpdateClock;
+  End;
+  If(KeyPressed)Then Begin
    Key:=ReadKey;
-
    { Si la boîte Exécuter est ouverte, gérer la saisie }
-   If RunDialogVisible then
-   Begin
+   If(RunDialogVisible)Then Begin
     HandleRunDialogKeyboard(Key);
    End
-   Else
+    Else
    Begin
     { Gestion des touches normales }
     Case Key of
@@ -744,36 +845,33 @@ Begin
      End;
      '1': Begin { Sélectionner option 1 }
       If ShutdownDialogVisible Then Begin
-       SelectedShutdownOption := 1;
+       SelectedShutdownOption:=1;
        DrawShutdownDialog;
       End;
      End;
      '2': Begin { Sélectionner option 2 }
       If ShutdownDialogVisible Then Begin
-       SelectedShutdownOption := 2;
+       SelectedShutdownOption:=2;
        DrawShutdownDialog;
       End;
      End;
      '3': Begin { Sélectionner option 3 }
       If ShutdownDialogVisible Then Begin
-       SelectedShutdownOption := 3;
+       SelectedShutdownOption:=3;
        DrawShutdownDialog;
       End;
      End;
      #13: Begin { Entrée pour valider }
-      If ShutdownDialogVisible then
-       ExecuteShutdownAction;
+      If(ShutdownDialogVisible)Then ExecuteShutdownAction;
      End;
      #27: Begin { ESC }
-      If ShutdownDialogVisible then
-      Begin
-       ShutdownDialogVisible := False;
+      If(ShutdownDialogVisible)Then Begin
+       ShutdownDialogVisible:=False;
        DrawDesktop;
-       If MenuVisible then
-        DrawStartMenu;
+       If(MenuVisible)Then DrawStartMenu;
       End
-      Else If RunDialogVisible then
-      Begin
+       Else
+      If RunDialogVisible Then Begin
        RunDialogVisible := False;
        DrawDesktop;
       End
