@@ -17,6 +17,7 @@ Var
  MouseX,MouseY:LongInt;
  ShutdownDialogVisible:Boolean;
  SelectedShutdownOption:Integer; { 1=Eteindre, 2=Redemarrer, 3=Quitter }
+ HighlightedMenuItem:Integer; { 0=aucun, 1-8=element du menu }
 
 {$IFNDEF FPC}
  Function MouseDriverFound:Boolean;
@@ -140,11 +141,22 @@ Begin
  SetTextStyle(DefaultFont, VertDir, 1);
  OutTextXY(20, MaxY - 160, 'Windows 95 - 0');
   { Éléments du menu }
- SetColor(Black);
  SetTextStyle(DefaultFont, HorizDir, 1);
  For i:=1 to 8 do Begin
   If MenuItems[i] <> '_______________'Then
-   OutTextXY(30, MaxY - 205 + (i-1) * 20, MenuItems[i])
+  Begin
+   { Dessiner la surbrillance si l'élément est survolé }
+   If (HighlightedMenuItem = i) and (i <> 7) Then
+   Begin
+    SetFillStyle(SolidFill, Blue);
+    Bar(28, MaxY - 210 + (i-1) * 20, 177, MaxY - 192 + (i-1) * 20);
+    SetColor(White);
+   End
+   Else
+    SetColor(Black);
+
+   OutTextXY(30, MaxY - 205 + (i-1) * 20, MenuItems[i]);
+  End
   Else
   Begin
    { Ligne de séparation }
@@ -152,7 +164,6 @@ Begin
    Line(30, MaxY - 200 + (i-1) * 20, 175, MaxY - 200 + (i-1) * 20);
    SetColor(White);
    Line(30, MaxY - 199 + (i-1) * 20, 175, MaxY - 199 + (i-1) * 20);
-   SetColor(Black);
   End;
  End;
 End;
@@ -313,7 +324,7 @@ End;
   MOV BX,1
   MOV CX,BX
   INT 15h
-   { Demande la mode sp�cifier }
+   { Demande la mode sp�cifier }
   MOV AX,5307h
   mov BX,1
   MOV CX,Mode
@@ -364,15 +375,56 @@ Procedure ExecuteShutdownAction;Begin
  End;
 End;
 
+{ Détermine quel élément du menu est survolé par la souris }
+Function GetHoveredMenuItem(x,y:Integer):Integer;
+Var
+ MaxY:Integer;
+ i:Integer;
+Begin
+ MaxY:=GetMaxY;
+ GetHoveredMenuItem:=0; { Par défaut, aucun élément }
+ For i:=1 to 8 do Begin
+  If (i<>7) and { Ignorer la ligne de séparation }
+     (x>=28) and (x <= 177) and
+     (y>=MaxY-210+(i-1)*20) and
+     (y<=MaxY-192+(i-1)*20) then
+  Begin
+   GetHoveredMenuItem := i;
+   Break;
+  End;
+ End;
+End;
+
 { Gestionnaire d'événements souris }
 Procedure HandleMouse;
 Var
  MouseButton: LongInt;
  MousePressed: Boolean;
  i: Integer;
+ NewHighlightedItem: Integer;
 Begin
  GetMouseState(MouseX, MouseY, MouseButton);
  MousePressed:=(MouseButton and 1)<>0; { Bouton gauche pressé }
+
+ { Gestion de la surbrillance du menu }
+ If MenuVisible and not ShutdownDialogVisible Then
+ Begin
+  NewHighlightedItem := GetHoveredMenuItem(MouseX, MouseY);
+  If NewHighlightedItem <> HighlightedMenuItem Then
+  Begin
+   HighlightedMenuItem := NewHighlightedItem;
+   DrawStartMenu; { Redessiner le menu avec la nouvelle surbrillance }
+  End;
+ End
+ Else
+ Begin
+  If HighlightedMenuItem <> 0 Then
+  Begin
+   HighlightedMenuItem := 0;
+   If MenuVisible Then DrawStartMenu;
+  End;
+ End;
+
  If(MousePressed)Then Begin
   If ShutdownDialogVisible Then Begin
    { Gestion des clics dans la boîte de dialogue d'arrêt }
@@ -388,6 +440,7 @@ Begin
     Else
    If IsMouseOnCancelButton(MouseX,MouseY)Then Begin
     ShutdownDialogVisible := False;
+    HighlightedMenuItem := 0;
     DrawDesktop;
     If(MenuVisible)Then DrawStartMenu;
    End;
@@ -401,6 +454,7 @@ Begin
    { Vérifier les clics sur les éléments du menu }
    If IsMouseOnMenuItem(MouseX, MouseY,8)Then Begin { Arrêter... }
     MenuVisible := False;
+    HighlightedMenuItem := 0;
     ShutdownDialogVisible := True;
     SelectedShutdownOption := 1; { Par défaut: Eteindre }
     DrawDesktop;
@@ -410,6 +464,7 @@ Begin
    Begin
     { Fermer le menu si clic ailleurs }
     MenuVisible := False;
+    HighlightedMenuItem := 0;
     DrawDesktop;
    End;
     { Attendre que le bouton soit relâché }
@@ -420,6 +475,7 @@ Begin
    Else
   If IsMouseOnStartButton(MouseX, MouseY)Then Begin
    MenuVisible:=Not MenuVisible;
+   HighlightedMenuItem := 0;
    DrawDesktop;
    If MenuVisible Then DrawStartMenu;
    { Attendre que le bouton soit relâché }
@@ -438,6 +494,7 @@ Begin
  MenuVisible:=False;
  ShutdownDialogVisible:=False;
  SelectedShutdownOption:=1;
+ HighlightedMenuItem:=0;
  DrawDesktop;
  Repeat
   HandleMouse;
