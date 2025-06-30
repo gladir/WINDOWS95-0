@@ -36,6 +36,7 @@ Var
  SelectedYear, SelectedMonth, SelectedDay: Word;
  TimeZone: String;
  CurrentSec100, DayOfWeek: Word;
+ TimeManuallyModified: Boolean;
 
 {$IFNDEF FPC}
  Function SetAPMMode(Mode:Word):Boolean;Assembler;ASM
@@ -682,6 +683,96 @@ Begin
                                 (y >= DialogY2 - 35) and (y <= DialogY2 - 15);
 End;
 
+{ Vérifie si la souris est sur le bouton + du spinner heure }
+Function IsMouseOnHourPlusButton(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX1, DialogY1: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX1 := CenterX - 200;
+ DialogY1 := CenterY - 150;
+ 
+ IsMouseOnHourPlusButton := (x >= DialogX1 + 272) and (x <= DialogX1 + 282) and
+                           (y >= DialogY1 + 205) and (y <= DialogY1 + 214);
+End;
+
+{ Vérifie si la souris est sur le bouton - du spinner heure }
+Function IsMouseOnHourMinusButton(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX1, DialogY1: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX1 := CenterX - 200;
+ DialogY1 := CenterY - 150;
+ 
+ IsMouseOnHourMinusButton := (x >= DialogX1 + 272) and (x <= DialogX1 + 282) and
+                            (y >= DialogY1 + 216) and (y <= DialogY1 + 225);
+End;
+
+{ Vérifie si la souris est sur le bouton + du spinner minute }
+Function IsMouseOnMinutePlusButton(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX1, DialogY1: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX1 := CenterX - 200;
+ DialogY1 := CenterY - 150;
+ 
+ IsMouseOnMinutePlusButton := (x >= DialogX1 + 327) and (x <= DialogX1 + 337) and
+                             (y >= DialogY1 + 205) and (y <= DialogY1 + 214);
+End;
+
+{ Vérifie si la souris est sur le bouton - du spinner minute }
+Function IsMouseOnMinuteMinusButton(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX1, DialogY1: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX1 := CenterX - 200;
+ DialogY1 := CenterY - 150;
+ 
+ IsMouseOnMinuteMinusButton := (x >= DialogX1 + 327) and (x <= DialogX1 + 337) and
+                              (y >= DialogY1 + 216) and (y <= DialogY1 + 225);
+End;
+
+{ Vérifie si la souris est sur le bouton + du spinner seconde }
+Function IsMouseOnSecondPlusButton(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX1, DialogY1: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX1 := CenterX - 200;
+ DialogY1 := CenterY - 150;
+ 
+ IsMouseOnSecondPlusButton := (x >= DialogX1 + 377) and (x <= DialogX1 + 387) and
+                             (y >= DialogY1 + 205) and (y <= DialogY1 + 214);
+End;
+
+{ Vérifie si la souris est sur le bouton - du spinner seconde }
+Function IsMouseOnSecondMinusButton(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX1, DialogY1: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX1 := CenterX - 200;
+ DialogY1 := CenterY - 150;
+ 
+ IsMouseOnSecondMinusButton := (x >= DialogX1 + 377) and (x <= DialogX1 + 387) and
+                              (y >= DialogY1 + 216) and (y <= DialogY1 + 225);
+End;
+
 { Vérifie si la souris est sur l'horloge de la barre de tâches }
 Function IsMouseOnClock(x, y: Integer): Boolean;
 Var
@@ -823,6 +914,8 @@ Begin
  End;
  
  { Valeur }
+ SetColor(Black);
+ SetTextStyle(DefaultFont, HorizDir, 1);
  If Value < 10 Then
   OutTextXY(x + 8, y + 6, '0' + IntToStr(Value))
  Else
@@ -935,6 +1028,14 @@ Begin
  GetTime(H, M, S, DayOfWeek);
  GetDate(Year, Month, Day, DayOfWeek);
  
+ { Si l'heure n'a pas été modifiée manuellement, utiliser l'heure système }
+ If not TimeManuallyModified Then
+ Begin
+  SelectedHour := H;
+  SelectedMin := M;
+  SelectedSec := S;
+ End;
+ 
  If CurrentTab = 1 Then
  Begin
   { Onglet Date et heure }
@@ -942,19 +1043,19 @@ Begin
   { Calendrier }
   DrawCalendar(DialogX1 + 15, DialogY1 + 60, Year, Month, Day);
   
-  { Horloge analogique }
-  DrawAnalogClock(DialogX1 + 280, DialogY1 + 120, 45, H, M, S);
+  { Horloge analogique - utiliser les valeurs sélectionnées }
+  DrawAnalogClock(DialogX1 + 280, DialogY1 + 120, 45, SelectedHour, SelectedMin, SelectedSec);
   
   { Réglages de l'heure }
   SetColor(Black);
   OutTextXY(DialogX1 + 230, DialogY1 + 190, 'Heure:');
-  DrawTimeSpinner(DialogX1 + 230, DialogY1 + 205, H, 23, False);
+  DrawTimeSpinner(DialogX1 + 230, DialogY1 + 205, SelectedHour, 23, False);
   
   OutTextXY(DialogX1 + 285, DialogY1 + 190, 'Min:');
-  DrawTimeSpinner(DialogX1 + 285, DialogY1 + 205, M, 59, False);
+  DrawTimeSpinner(DialogX1 + 285, DialogY1 + 205, SelectedMin, 59, False);
   
   OutTextXY(DialogX1 + 335, DialogY1 + 190, 'Sec:');
-  DrawTimeSpinner(DialogX1 + 335, DialogY1 + 205, S, 59, False);
+  DrawTimeSpinner(DialogX1 + 335, DialogY1 + 205, SelectedSec, 59, False);
  End
  Else
  Begin
@@ -1162,6 +1263,37 @@ Begin
    Else If IsMouseOnDateTimeApplyButton(MouseX, MouseY) Then Begin
     { Appliquer les changements sans fermer }
     { TODO: Implémenter l'application des changements }
+   End
+   { Gestion des clics sur les spinners }
+   Else If IsMouseOnHourPlusButton(MouseX, MouseY) Then Begin
+    TimeManuallyModified := True;
+    SelectedHour := (SelectedHour + 1) mod 24;
+    DrawDateTimeDialog;
+   End
+   Else If IsMouseOnHourMinusButton(MouseX, MouseY) Then Begin
+    TimeManuallyModified := True;
+    If SelectedHour = 0 Then SelectedHour := 23 Else SelectedHour := SelectedHour - 1;
+    DrawDateTimeDialog;
+   End
+   Else If IsMouseOnMinutePlusButton(MouseX, MouseY) Then Begin
+    TimeManuallyModified := True;
+    SelectedMin := (SelectedMin + 1) mod 60;
+    DrawDateTimeDialog;
+   End
+   Else If IsMouseOnMinuteMinusButton(MouseX, MouseY) Then Begin
+    TimeManuallyModified := True;
+    If SelectedMin = 0 Then SelectedMin := 59 Else SelectedMin := SelectedMin - 1;
+    DrawDateTimeDialog;
+   End
+   Else If IsMouseOnSecondPlusButton(MouseX, MouseY) Then Begin
+    TimeManuallyModified := True;
+    SelectedSec := (SelectedSec + 1) mod 60;
+    DrawDateTimeDialog;
+   End
+   Else If IsMouseOnSecondMinusButton(MouseX, MouseY) Then Begin
+    TimeManuallyModified := True;
+    If SelectedSec = 0 Then SelectedSec := 59 Else SelectedSec := SelectedSec - 1;
+    DrawDateTimeDialog;
    End;
 
    { Attendre que le bouton soit relâché }
@@ -1260,6 +1392,7 @@ Begin
    CurrentTab := 1; { Commencer sur l'onglet Date et heure }
    MenuVisible := False;
    HighlightedMenuItem := 0;
+   TimeManuallyModified := False; { Réinitialiser pour utiliser l'heure système }
 
    { Initialiser avec l'heure actuelle }
    GetTime(SelectedHour, SelectedMin, SelectedSec, CurrentSec100);
@@ -1287,7 +1420,7 @@ End;
 Procedure MainLoop;
 Var
  Key:Char;
- LastMinute: Word;
+ LastMinute, LastSecond: Word;
  CurrentHour, CurrentMin, CurrentSec, CurrentSec100: Word;
 Begin
  MenuVisible:=False;
@@ -1298,19 +1431,30 @@ Begin
  RunCommand:='';
  DateTimeDialogVisible:=False;
  CurrentTab:=1;
-  { Initialiser la dernière minute pour la mise à jour de l'horloge }
+ TimeManuallyModified:=False;
+  { Initialiser la dernière minute et seconde pour la mise à jour de l'horloge }
  GetTime(CurrentHour, CurrentMin, CurrentSec, CurrentSec100);
  LastMinute := CurrentMin;
+ LastSecond := CurrentSec;
  DrawDesktop;
  Repeat
   HandleMouse;
-   { Mise à jour de l'horloge chaque minute }
+   { Mise à jour de l'horloge }
   GetTime(CurrentHour, CurrentMin, CurrentSec, CurrentSec100);
+  
+  { Mise à jour de l'horloge de la barre de tâches chaque minute }
   If CurrentMin <> LastMinute Then
   Begin
    LastMinute := CurrentMin;
-   If not ShutdownDialogVisible and not RunDialogVisible Then
+   If not ShutdownDialogVisible and not RunDialogVisible and not DateTimeDialogVisible Then
     UpdateClock;
+  End;
+  
+  { Mise à jour de l'horloge analogique chaque seconde si la boîte Date/Heure est ouverte }
+  If DateTimeDialogVisible and (CurrentSec <> LastSecond) Then
+  Begin
+   LastSecond := CurrentSec;
+   DrawDateTimeDialog;
   End;
   If(KeyPressed)Then Begin
    Key:=ReadKey;
