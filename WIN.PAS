@@ -188,6 +188,30 @@ Procedure Draw3DBorder(x1,y1,x2,y2:Integer;Raised:Boolean);Begin
  End;
 End;
 
+{ Dessine l'icône Windows 95 (quatre carrés colorés) }
+Procedure DrawWindowsIcon(x, y: Integer);
+Begin
+ { Carré rouge (en haut à gauche) }
+ SetFillStyle(SolidFill, Red);
+ Bar(x, y, x + 4, y + 4);
+
+ { Carré vert (en haut à droite) }
+ SetFillStyle(SolidFill, Green);
+ Bar(x + 5, y, x + 9, y + 4);
+
+ { Carré bleu (en bas à gauche) }
+ SetFillStyle(SolidFill, Blue);
+ Bar(x, y + 5, x + 4, y + 9);
+
+ { Carré jaune (en bas à droite) }
+ SetFillStyle(SolidFill, Yellow);
+ Bar(x + 5, y + 5, x + 9, y + 9);
+
+ { Bordure noire autour de l'icône }
+ SetColor(Black);
+ Rectangle(x - 1, y - 1, x + 10, y + 10);
+End;
+
 { Dessine la barre de tâches Windows 95 }
 Procedure DrawTaskbar;
 Var
@@ -205,12 +229,16 @@ Begin
  Line(0, MaxY - 30, MaxX, MaxY - 30);
   { Dessine le bouton Démarrer }
  SetFillStyle(SolidFill, LightGray);
- Bar(2, MaxY - 28, 60, MaxY - 2);
- Draw3DBorder(2, MaxY - 28, 80, MaxY - 2, True);
-  { Texte "Démarrer" }
+ Bar(2, MaxY - 28, 90, MaxY - 2);
+ Draw3DBorder(2, MaxY - 28, 90, MaxY - 2, True);
+
+ { Icône Windows à gauche }
+ DrawWindowsIcon(6, MaxY - 22);
+
+ { Texte "Démarrer" à droite de l'icône }
  SetColor(Black);
  SetTextStyle(DefaultFont, HorizDir, 1);
- OutTextXY(8, MaxY - 20, 'Demarrer');
+ OutTextXY(20, MaxY - 20, 'Demarrer');
 
  { Horloge à droite de la barre de tâches }
  TimeStr := GetCurrentTime;
@@ -302,7 +330,7 @@ Var
  MaxY:Integer;
 Begin
  MaxY:=GetMaxY;
- IsMouseOnStartButton := (x >= 2) and (x <= 60) and (y >= MaxY - 28) and (y <= MaxY - 2);
+ IsMouseOnStartButton := (x >= 2) and (x <= 90) and (y >= MaxY - 28) and (y <= MaxY - 2);
 End;
 
  { Vérifie si la souris est sur une option du menu Démarrer }
@@ -756,23 +784,8 @@ Begin
  End;
 End;
 
-{ Vérifie si la souris est sur l'horloge }
-Function IsMouseOnClock(x, y: Integer): Boolean;
-Var
- MaxX, MaxY: Integer;
- ClockWidth: Integer;
-Begin
- MaxX := GetMaxX;
- MaxY := GetMaxY;
- ClockWidth := 95;
-
- IsMouseOnClock := (x >= MaxX - ClockWidth) and (x <= MaxX - 2) and
-                   (y >= MaxY - 28) and (y <= MaxY - 2);
-End;
-
 { Met à jour l'affichage de l'horloge }
-Procedure UpdateClock;
-Begin
+Procedure UpdateClock;Begin
  { Redessiner seulement la zone de l'horloge }
  DrawTaskbar;
 End;
