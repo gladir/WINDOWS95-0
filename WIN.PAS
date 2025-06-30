@@ -21,7 +21,7 @@ Var
  DialogX2 := CenterX + 200;
  DialogY2 := CenterY + 70;
 
- IsMouseOnRunCancelButton := (x >= DialogX2 - 60) and (x <= DialogX2 - 10) and
+ IsMouseOnRunCancelButton := (x >= DialogX2 - 85) and (x <= DialogX2 - 10) and
                             (y >= DialogY2 - 35) and (y <= DialogY2 - 15);dre, 2=Redemarrer, 3=Quitter }
  HighlightedMenuItem:Integer; { 0=aucun, 1-8=element du menu }
  RunDialogVisible:Boolean;
@@ -518,20 +518,23 @@ Begin
        DialogX1 + 75 + Length(RunCommand) * 8, DialogY1 + 92);
  End;
 
- { Boutons OK et Annuler }
+ { Boutons de la boîte de dialogue }
  SetFillStyle(SolidFill, LightGray);
- Bar(DialogX2 - 120, DialogY2 - 35, DialogX2 - 70, DialogY2 - 15);
- Draw3DBorder(DialogX2 - 120, DialogY2 - 35, DialogX2 - 70, DialogY2 - 15, True);
- OutTextXY(DialogX2 - 105, DialogY2 - 28, 'OK');
+ 
+ { Bouton Parcourir à gauche - plus large }
+ Bar(DialogX1 + 15, DialogY2 - 35, DialogX1 + 95, DialogY2 - 15);
+ Draw3DBorder(DialogX1 + 15, DialogY2 - 35, DialogX1 + 95, DialogY2 - 15, True);
+ OutTextXY(DialogX1 + 20, DialogY2 - 28, 'Parcourir...');
 
- Bar(DialogX2 - 60, DialogY2 - 35, DialogX2 - 10, DialogY2 - 15);
- Draw3DBorder(DialogX2 - 60, DialogY2 - 35, DialogX2 - 10, DialogY2 - 15, True);
- OutTextXY(DialogX2 - 45, DialogY2 - 28, 'Annuler');
+ { Bouton OK décalé vers la gauche }
+ Bar(DialogX2 - 140, DialogY2 - 35, DialogX2 - 95, DialogY2 - 15);
+ Draw3DBorder(DialogX2 - 140, DialogY2 - 35, DialogX2 - 95, DialogY2 - 15, True);
+ OutTextXY(DialogX2 - 120, DialogY2 - 28, 'OK');
 
- { Bouton Parcourir }
- Bar(DialogX2 - 180, DialogY2 - 35, DialogX2 - 130, DialogY2 - 15);
- Draw3DBorder(DialogX2 - 180, DialogY2 - 35, DialogX2 - 130, DialogY2 - 15, True);
- OutTextXY(DialogX2 - 170, DialogY2 - 28, 'Parcourir...');
+ { Bouton Annuler à droite - plus large }
+ Bar(DialogX2 - 85, DialogY2 - 35, DialogX2 - 10, DialogY2 - 15);
+ Draw3DBorder(DialogX2 - 85, DialogY2 - 35, DialogX2 - 10, DialogY2 - 15, True);
+ OutTextXY(DialogX2 - 75, DialogY2 - 28, 'Annuler');
 End;
 
 { Vérifie si la souris est sur le bouton OK de la boîte Exécuter }
@@ -545,7 +548,7 @@ Begin
  DialogX2 := CenterX + 200;
  DialogY2 := CenterY + 70;
 
- IsMouseOnRunOKButton := (x >= DialogX2 - 120) and (x <= DialogX2 - 70) and
+ IsMouseOnRunOKButton := (x >= DialogX2 - 140) and (x <= DialogX2 - 95) and
                         (y >= DialogY2 - 35) and (y <= DialogY2 - 15);
 End;
 
@@ -562,6 +565,21 @@ Begin
 
  IsMouseOnRunCancelButton := (x >= DialogX2 - 60) and (x <= DialogX2 - 10) and
                             (y >= DialogY2 - 30) and (y <= DialogY2 - 10);
+End;
+
+{ Vérifie si la souris est sur le bouton Parcourir de la boîte Exécuter }
+Function IsMouseOnRunBrowseButton(x, y: Integer): Boolean;
+Var
+ CenterX, CenterY: Integer;
+ DialogX1, DialogY2: Integer;
+Begin
+ CenterX := GetMaxX div 2;
+ CenterY := GetMaxY div 2;
+ DialogX1 := CenterX - 200;
+ DialogY2 := CenterY + 70;
+ 
+ IsMouseOnRunBrowseButton := (x >= DialogX1 + 15) and (x <= DialogX1 + 95) and
+                            (y >= DialogY2 - 35) and (y <= DialogY2 - 15);
 End;
 
 { Exécute la commande saisie }
@@ -709,6 +727,9 @@ Begin
    Else If IsMouseOnRunCancelButton(MouseX, MouseY) Then Begin
     RunDialogVisible := False;
     DrawDesktop;
+   End
+   Else If IsMouseOnRunBrowseButton(MouseX, MouseY) Then Begin
+    { TODO: Ouvrir le sélecteur de fichiers }
    End;
 
    { Attendre que le bouton soit relâché }
