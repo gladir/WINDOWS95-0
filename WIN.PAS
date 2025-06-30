@@ -603,7 +603,7 @@ Begin
  DialogX1 := CenterX - 200;
  DialogY1 := CenterY - 150;
  
- IsMouseOnDateTab := (x >= DialogX1 + 5) and (x <= DialogX1 + 100) and
+ IsMouseOnDateTab := (x >= DialogX1 + 5) and (x <= DialogX1 + 120) and
                      (y >= DialogY1 + 25) and (y <= DialogY1 + 45);
 End;
 
@@ -618,7 +618,7 @@ Begin
  DialogX1 := CenterX - 200;
  DialogY1 := CenterY - 150;
  
- IsMouseOnTimezoneTab := (x >= DialogX1 + 100) and (x <= DialogX1 + 200) and
+ IsMouseOnTimezoneTab := (x >= DialogX1 + 125) and (x <= DialogX1 + 250) and
                         (y >= DialogY1 + 25) and (y <= DialogY1 + 45);
 End;
 
@@ -648,7 +648,7 @@ Begin
  DialogX2 := CenterX + 200;
  DialogY2 := CenterY + 150;
  
- IsMouseOnDateTimeOKButton := (x >= DialogX2 - 180) and (x <= DialogX2 - 130) and
+ IsMouseOnDateTimeOKButton := (x >= DialogX2 - 250) and (x <= DialogX2 - 200) and
                              (y >= DialogY2 - 35) and (y <= DialogY2 - 15);
 End;
 
@@ -663,7 +663,7 @@ Begin
  DialogX2 := CenterX + 200;
  DialogY2 := CenterY + 150;
  
- IsMouseOnDateTimeCancelButton := (x >= DialogX2 - 120) and (x <= DialogX2 - 70) and
+ IsMouseOnDateTimeCancelButton := (x >= DialogX2 - 190) and (x <= DialogX2 - 110) and
                                  (y >= DialogY2 - 35) and (y <= DialogY2 - 15);
 End;
 
@@ -678,7 +678,7 @@ Begin
  DialogX2 := CenterX + 200;
  DialogY2 := CenterY + 150;
  
- IsMouseOnDateTimeApplyButton := (x >= DialogX2 - 60) and (x <= DialogX2 - 10) and
+ IsMouseOnDateTimeApplyButton := (x >= DialogX2 - 105) and (x <= DialogX2 - 5) and
                                 (y >= DialogY2 - 35) and (y <= DialogY2 - 15);
 End;
 
@@ -850,36 +850,36 @@ Begin
  If CurrentTab = 1 Then
  Begin
   SetFillStyle(SolidFill, LightGray);
-  Bar(x + 5, y + 25, x + 100, y + 45);
+  Bar(x + 5, y + 25, x + 120, y + 45);
   SetColor(Black);
   OutTextXY(x + 15, y + 32, 'Date et heure');
-  Draw3DBorder(x + 5, y + 25, x + 100, y + 45, True);
+  Draw3DBorder(x + 5, y + 25, x + 120, y + 45, True);
  End
  Else
  Begin
   SetFillStyle(SolidFill, DarkGray);
-  Bar(x + 5, y + 27, x + 100, y + 45);
+  Bar(x + 5, y + 27, x + 120, y + 45);
   SetColor(Black);
   OutTextXY(x + 15, y + 34, 'Date et heure');
-  Draw3DBorder(x + 5, y + 27, x + 100, y + 45, False);
+  Draw3DBorder(x + 5, y + 27, x + 120, y + 45, False);
  End;
  
  { Onglet Fuseau horaire }
  If CurrentTab = 2 Then
  Begin
   SetFillStyle(SolidFill, LightGray);
-  Bar(x + 100, y + 25, x + 200, y + 45);
+  Bar(x + 125, y + 25, x + 250, y + 45);
   SetColor(Black);
-  OutTextXY(x + 110, y + 32, 'Fuseau horaire');
-  Draw3DBorder(x + 100, y + 25, x + 200, y + 45, True);
+  OutTextXY(x + 135, y + 32, 'Fuseau horaire');
+  Draw3DBorder(x + 125, y + 25, x + 250, y + 45, True);
  End
  Else
  Begin
   SetFillStyle(SolidFill, DarkGray);
-  Bar(x + 100, y + 27, x + 200, y + 45);
+  Bar(x + 125, y + 27, x + 250, y + 45);
   SetColor(Black);
-  OutTextXY(x + 110, y + 34, 'Fuseau horaire');
-  Draw3DBorder(x + 100, y + 27, x + 200, y + 45, False);
+  OutTextXY(x + 135, y + 34, 'Fuseau horaire');
+  Draw3DBorder(x + 125, y + 27, x + 250, y + 45, False);
  End;
 End;
 
@@ -979,23 +979,23 @@ Begin
  { Boutons }
  SetFillStyle(SolidFill, LightGray);
  
- { Bouton OK }
- Bar(DialogX2 - 180, DialogY2 - 35, DialogX2 - 130, DialogY2 - 15);
- Draw3DBorder(DialogX2 - 180, DialogY2 - 35, DialogX2 - 130, DialogY2 - 15, True);
+ { Bouton OK - décalé de 30px supplémentaires vers la gauche }
+ Bar(DialogX2 - 250, DialogY2 - 35, DialogX2 - 200, DialogY2 - 15);
+ Draw3DBorder(DialogX2 - 250, DialogY2 - 35, DialogX2 - 200, DialogY2 - 15, True);
  SetColor(Black);
- OutTextXY(DialogX2 - 165, DialogY2 - 28, 'OK');
+ OutTextXY(DialogX2 - 235, DialogY2 - 28, 'OK');
  
- { Bouton Annuler }
- Bar(DialogX2 - 120, DialogY2 - 35, DialogX2 - 70, DialogY2 - 15);
- Draw3DBorder(DialogX2 - 120, DialogY2 - 35, DialogX2 - 70, DialogY2 - 15, True);
+ { Bouton Annuler - décalé de 30px supplémentaires vers la gauche }
+ Bar(DialogX2 - 190, DialogY2 - 35, DialogX2 - 110, DialogY2 - 15);
+ Draw3DBorder(DialogX2 - 190, DialogY2 - 35, DialogX2 - 110, DialogY2 - 15, True);
  SetColor(Black);
- OutTextXY(DialogX2 - 105, DialogY2 - 28, 'Annuler');
+ OutTextXY(DialogX2 - 170, DialogY2 - 28, 'Annuler');
  
- { Bouton Appliquer }
- Bar(DialogX2 - 60, DialogY2 - 35, DialogX2 - 10, DialogY2 - 15);
- Draw3DBorder(DialogX2 - 60, DialogY2 - 35, DialogX2 - 10, DialogY2 - 15, True);
+ { Bouton Appliquer - texte décalé de 5px vers la gauche }
+ Bar(DialogX2 - 105, DialogY2 - 35, DialogX2 - 5, DialogY2 - 15);
+ Draw3DBorder(DialogX2 - 105, DialogY2 - 35, DialogX2 - 5, DialogY2 - 15, True);
  SetColor(Black);
- OutTextXY(DialogX2 - 50, DialogY2 - 28, 'Appliquer');
+ OutTextXY(DialogX2 - 80, DialogY2 - 28, 'Appliquer');
 End;
 
 { Exécute la commande saisie }
